@@ -221,6 +221,9 @@ func serve(args []string) error {
 	}
 
 	if *flRepoPath != "" {
+		if _, err := os.Stat(*flRepoPath); os.IsNotExist(err) {
+			stdlog.Fatal(err)
+		}
 		r.PathPrefix("/repo/").Handler(http.StripPrefix("/repo/", http.FileServer(http.Dir(*flRepoPath))))
 	}
 
@@ -292,7 +295,7 @@ func printExamples() {
 	const exampleText = `
 		Quickstart:
 		sudo micromdm serve -apns-cert /path/to/mdm_push_cert.p12 -apns-password=password_for_p12 -server-url=https://my-server-url
-		
+
 		Using self-signed certs:
 		*Note, -apns flags are still required!*
 		sudo micromdm serve -tls-cert=/path/to/server.crt -tls-key=/path/to/server.key

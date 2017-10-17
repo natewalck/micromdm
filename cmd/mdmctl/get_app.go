@@ -14,7 +14,7 @@ import (
 type appsTableOutput struct{ w *tabwriter.Writer }
 
 func (out *appsTableOutput) BasicHeader() {
-	fmt.Fprintf(out.w, "Name\t,ManifestURL\n")
+	fmt.Fprintf(out.w, "Name\tManifestURL\n")
 }
 
 func (out *appsTableOutput) BasicFooter() {

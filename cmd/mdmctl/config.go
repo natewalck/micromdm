@@ -97,8 +97,8 @@ func setCmd(cfg *ClientConfig, args []string) error {
 	}
 
 	if *flServerURL != "" {
-		if !strings.HasPrefix(*flServerURL, "http") ||
-			!strings.HasPrefix(*flServerURL, "https") {
+		if !(strings.HasPrefix(*flServerURL, "http") ||
+			strings.HasPrefix(*flServerURL, "https")) {
 			*flServerURL = "https://" + *flServerURL
 		}
 		u, err := url.Parse(*flServerURL)

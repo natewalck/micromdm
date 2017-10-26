@@ -43,7 +43,7 @@ Once you created the push CSR, you mush sign the push CSR with the MDM Vendor Ce
 
     mdmctl mdmcert vendor -sign -cert=./mdm-certificates/mdm.cer -password=secret
 
-Once generated, upload the PushCertificateRequest file to https://identity.apple.com to obtain your MDM Push Certificate.
+Once generated, upload the PushCertificateRequest.plist file to https://identity.apple.com to obtain your MDM Push Certificate.
 Use the push private key and the push cert you got from identity.apple.com in your MDM server.
 
 Commands:
@@ -83,7 +83,7 @@ const (
 	pushCertificatePrivateKeyFilename = "PushCertificatePrivateKey.key"
 	vendorPKeyFilename                = "VendorPrivateKey.key"
 	vendorCSRFilename                 = "VendorCertificateRequest.csr"
-	pushRequestFilename               = "PushCertificateRequest"
+	pushRequestFilename               = "PushCertificateRequest.plist"
 	mdmcertdir                        = "mdm-certificates"
 )
 
@@ -126,7 +126,7 @@ func (cmd *mdmcertCommand) runVendor(args []string) error {
 			return errors.Wrap(err, "encode base64 push certificate request")
 		}
 		err = ioutil.WriteFile(filepath.Join(mdmcertdir, pushRequestFilename), encoded, 0600)
-		return errors.Wrap(err, "write PushCertificateRequest to file file")
+		return errors.Wrapf(err, "write %s to file", pushRequestFilename)
 	}
 
 	if err := checkCSRFlags(*flCN, *flCountry, *flEmail, password); err != nil {

@@ -96,23 +96,32 @@ func setCmd(cfg *ClientConfig, args []string) error {
 		cfg.APIToken = *flToken
 	}
 
-	if *flServerURL != "" {
-		if !(strings.HasPrefix(*flServerURL, "http") ||
-			strings.HasPrefix(*flServerURL, "https")) {
-			*flServerURL = "https://" + *flServerURL
-		}
-		u, err := url.Parse(*flServerURL)
-		if err != nil {
-			return err
-		}
-		u.Scheme = "https"
-		u.Path = "/"
-		cfg.ServerURL = u.String()
+	validatedURL, err := validateServerURL(*flServerURL)
+	if err != nil {
+		return err
 	}
+	cfg.ServerURL = validatedURL
 
 	cfg.SkipVerify = *flSkipVerify
 
 	return SaveClientConfig(cfg)
+}
+
+func validateServerURL(serverURL string) (string, error) {
+	if serverURL != "" {
+		if !(strings.HasPrefix(serverURL, "http") ||
+			strings.HasPrefix(serverURL, "https")) {
+			serverURL = "https://" + serverURL
+		}
+		u, err := url.Parse(serverURL)
+		if err != nil {
+			return "", err
+		}
+		u.Path = "/"
+		serverURL = u.String()
+	}
+	return serverURL, nil
+
 }
 
 func clientConfigPath() (string, error) {

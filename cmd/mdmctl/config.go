@@ -118,7 +118,7 @@ func switchCmd(args []string) error {
 		return err
 	}
 
-	return SwitchServerConfig(*flName)
+	return switchServerConfig(*flName)
 }
 
 func validateServerURL(serverURL string) (string, error) {
@@ -146,7 +146,7 @@ func clientConfigPath() (string, error) {
 	return filepath.Join(usr.HomeDir, ".micromdm", "servers.json"), err
 }
 
-func SaveClientConfig(clientCfg *ClientConfig) error {
+func saveClientConfig(clientCfg *ClientConfig) error {
 	configPath, err := clientConfigPath()
 	if err != nil {
 		return err
@@ -167,7 +167,7 @@ func SaveClientConfig(clientCfg *ClientConfig) error {
 }
 
 func saveServerConfig(cfg *ServerConfig, name string) error {
-	clientCfg, err := LoadClientConfig()
+	clientCfg, err := loadClientConfig()
 	if err != nil {
 		if os.IsNotExist(errors.Cause(err)) {
 			clientCfg = new(ClientConfig)
@@ -176,24 +176,23 @@ func saveServerConfig(cfg *ServerConfig, name string) error {
 			return err
 		}
 	}
-	fmt.Println(clientCfg)
 	if cfg == nil {
 		cfg = new(ServerConfig)
 	}
 	clientCfg.Servers[name] = *cfg
-	return SaveClientConfig(clientCfg)
+	return saveClientConfig(clientCfg)
 }
 
-func SwitchServerConfig(name string) error {
-	clientCfg, err := LoadClientConfig()
+func switchServerConfig(name string) error {
+	clientCfg, err := loadClientConfig()
 	if err != nil {
 		return err
 	}
 	clientCfg.Active = name
-	return SaveClientConfig(clientCfg)
+	return saveClientConfig(clientCfg)
 }
 
-func LoadClientConfig() (*ClientConfig, error) {
+func loadClientConfig() (*ClientConfig, error) {
 	path, err := clientConfigPath()
 	if err != nil {
 		return nil, err
@@ -211,7 +210,7 @@ func LoadClientConfig() (*ClientConfig, error) {
 }
 
 func LoadServerConfig() (*ServerConfig, error) {
-	cfg, err := LoadClientConfig()
+	cfg, err := loadClientConfig()
 	if err != nil {
 		return nil, err
 	}

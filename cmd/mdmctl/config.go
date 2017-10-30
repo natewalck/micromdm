@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -38,10 +37,15 @@ func (cmd *configCommand) Run(args []string) error {
 		cmd.Usage()
 		os.Exit(1)
 	}
-	migrateOldSettings()
+
+	if strings.ToLower(args[0]) != "migrate" {
+		checkForOldConfig()
+	}
 
 	var run func([]string) error
 	switch strings.ToLower(args[0]) {
+	case "migrate":
+		run = migrateCmd
 	case "set":
 		run = setCmd
 	case "switch":
@@ -79,31 +83,38 @@ mdmctl config switch -h
 	return nil
 }
 
-func migrateOldSettings() error {
+func checkForOldConfig() error {
 	configPath, err := namedClientConfigPath("default.json")
 	if err != nil {
 		return err
 	}
 	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
-		cfgData, err := ioutil.ReadFile(configPath)
-		var serverCfg *ServerConfig
-		err = json.Unmarshal(cfgData, &serverCfg)
-		if err != nil {
-			fmt.Errorf("failed to unmarshal %s : %s", configPath, err)
-		}
-		fmt.Println("Found old style config. Migrating to new config...")
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Enter a name for the old config: ")
-		configName, _ := reader.ReadString('\n')
-		configName = strings.TrimSuffix(configName, "\n")
-		saveServerConfig(serverCfg, configName)
-		err = os.Remove(configPath)
-		if err != nil {
-			return err
-		}
-		fmt.Println("Successfully migrated old config.")
-		return nil
+		fmt.Println("Found old style config. You must migrate it to continue")
+		fmt.Println("Run `mdmctl config migrate -name=myconfig`")
+		os.Exit(1)
 	}
+	return nil
+}
+func migrateServerConfig(configName string) error {
+	configPath, err := namedClientConfigPath("default.json")
+	if err != nil {
+		return err
+	}
+	cfgData, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var serverCfg *ServerConfig
+	err = json.Unmarshal(cfgData, &serverCfg)
+	if err != nil {
+		fmt.Errorf("failed to unmarshal %s : %s", configPath, err)
+	}
+	err = saveServerConfig(serverCfg, configName)
+	err = os.Remove(configPath)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Successfully migrated old config.")
 	return nil
 }
 
@@ -139,7 +150,7 @@ func setCmd(args []string) error {
 }
 
 func switchCmd(args []string) error {
-	flagset := flag.NewFlagSet("set", flag.ExitOnError)
+	flagset := flag.NewFlagSet("switch", flag.ExitOnError)
 	var (
 		flName = flagset.String("name", "", "name of the server to switch to")
 	)
@@ -150,6 +161,18 @@ func switchCmd(args []string) error {
 	}
 
 	return switchServerConfig(*flName)
+}
+func migrateCmd(args []string) error {
+	flagset := flag.NewFlagSet("migrate", flag.ExitOnError)
+	var (
+		flName = flagset.String("name", "", "name of the server to switch to")
+	)
+
+	if err := flagset.Parse(args); err != nil {
+		return err
+	}
+
+	return migrateServerConfig(*flName)
 }
 
 func validateServerURL(serverURL string) (string, error) {

@@ -91,33 +91,18 @@ func migrateOldSettings() error {
 		if err != nil {
 			fmt.Errorf("failed to unmarshal %s : %s", configPath, err)
 		}
-		fmt.Println("Found old style config. Migrate to new config?")
-		if askForConfirmation() {
-			reader := bufio.NewReader(os.Stdin)
-			fmt.Print("Enter the name for the old config: ")
-			configName, _ := reader.ReadString('\n')
-			configName = strings.TrimSuffix(configName, "\n")
-			saveServerConfig(serverCfg, configName)
-			deleteOldSettings(configPath)
-		} else {
-			deleteOldSettings(configPath)
-			return nil
-		}
-		if err != nil {
-			errors.Wrap(err, "unable to load default config file")
-		}
-	}
-	return nil
-}
-
-func deleteOldSettings(configPath string) error {
-	fmt.Println("Would you like to delete the old config?")
-	if askForConfirmation() {
-		err := os.Remove(configPath)
+		fmt.Println("Found old style config. Migrating to new config...")
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Enter a name for the old config: ")
+		configName, _ := reader.ReadString('\n')
+		configName = strings.TrimSuffix(configName, "\n")
+		saveServerConfig(serverCfg, configName)
+		err = os.Remove(configPath)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Deleted %s\n", configPath)
+		fmt.Println("Successfully migrated old config.")
+		return nil
 	}
 	return nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -37,6 +38,7 @@ func (cmd *configCommand) Run(args []string) error {
 		cmd.Usage()
 		os.Exit(1)
 	}
+	migrateOldSettings()
 
 	var run func([]string) error
 	switch strings.ToLower(args[0]) {
@@ -73,6 +75,49 @@ mdmctl config print
 mdmctl config set -h
 `
 	fmt.Println(help)
+	return nil
+}
+
+func migrateOldSettings() error {
+	configPath, err := namedClientConfigPath("default.json")
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+		cfgData, err := ioutil.ReadFile(configPath)
+		var serverCfg *ServerConfig
+		err = json.Unmarshal(cfgData, &serverCfg)
+		if err != nil {
+			fmt.Errorf("failed to unmarshal %s : %s", configPath, err)
+		}
+		fmt.Println("Found old style config. Migrate to new config?")
+		if askForConfirmation() {
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Print("Enter the name for the old config: ")
+			configName, _ := reader.ReadString('\n')
+			configName = strings.TrimSuffix(configName, "\n")
+			saveServerConfig(serverCfg, configName)
+			deleteOldSettings(configPath)
+		} else {
+			deleteOldSettings(configPath)
+			return nil
+		}
+		if err != nil {
+			errors.Wrap(err, "unable to load default config file")
+		}
+	}
+	return nil
+}
+
+func deleteOldSettings(configPath string) error {
+	fmt.Println("Would you like to delete the old config?")
+	if askForConfirmation() {
+		err := os.Remove(configPath)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Deleted %s\n", configPath)
+	}
 	return nil
 }
 
@@ -139,11 +184,19 @@ func validateServerURL(serverURL string) (string, error) {
 }
 
 func clientConfigPath() (string, error) {
+	configPath, err := namedClientConfigPath("servers.json")
+	if err != nil {
+		return "", err
+	}
+	return configPath, err
+}
+
+func namedClientConfigPath(fileName string) (string, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(usr.HomeDir, ".micromdm", "servers.json"), err
+	return filepath.Join(usr.HomeDir, ".micromdm", fileName), err
 }
 
 func saveClientConfig(clientCfg *ClientConfig) error {

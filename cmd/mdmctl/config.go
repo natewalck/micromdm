@@ -13,8 +13,9 @@ import (
 	"strings"
 
 	"crypto/tls"
-	"github.com/pkg/errors"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 type configCommand struct {
@@ -102,17 +103,22 @@ func migrateServerConfig(configName string) error {
 	}
 	cfgData, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	var serverCfg *ServerConfig
 	err = json.Unmarshal(cfgData, &serverCfg)
 	if err != nil {
-		fmt.Errorf("failed to unmarshal %s : %s", configPath, err)
+		return errors.Wrapf(err, "failed to unmarshal %s", configPath)
 	}
-	err = saveServerConfig(serverCfg, configName)
-	err = os.Remove(configPath)
-	if err != nil {
+	if err = saveServerConfig(serverCfg, configName); err != nil {
 		return err
+	}
+	if err = os.Remove(configPath); err != nil {
+		return err
+	}
+	err = switchServerConfig(configName)
+	if err != nil {
+		fmt.Errorf("Failed to set %s as active config", configName)
 	}
 	fmt.Println("Successfully migrated old config.")
 	return nil
